@@ -9,17 +9,21 @@ function App() {
     const [sessionLength, setSessionLength] = useState(25);
     const [timeLeft, setTimeLeft] = useState("25:00");
     const [startStop, setStartStop] = useState(false);
+    const [timerLabel, setTimerLabel] = useState("Pause");
+    const [isBreak, setBreak] = useState(false);
 
     const resetClock = () => {
         setStartStop(false);
         setBreakLength(5);
         setSessionLength(25);
         setTimeLeft("25:00");
+        document.getElementById("#beep").pause();
+        document.getElementById("#beep").currentTime = 0;
     }
 
     const breakDecrement = () => {
         setBreakLength(breakLength => {
-            return breakLength > 1 ? breakLength - 1 : 0;
+            return breakLength > 1 ? breakLength - 1 : 1;
         });
     }
 
@@ -31,7 +35,7 @@ function App() {
 
     const sessionDecrement = () => {
         setSessionLength(sessionLength => {
-            return sessionLength > 1 ? sessionLength - 1 : 0;
+            return sessionLength > 1 ? sessionLength - 1 : 1;
         });
     }
 
@@ -46,41 +50,58 @@ function App() {
     }
 
     const countdown = useCallback(() => {
-        let time = timeLeft.split(":");
+        let time = timeLeft.split(":").map((item) => parseInt(item));
         if (time[1] > 0) {
             time[1]--;
         } else if (time[0] > 0) {
             time[0]--;
             time[1] = 59;
+        } else if (time[1] === 0 && time[0] === 0) {
+            if (isBreak) {
+                setTimeLeft([('00' + sessionLength).slice(-2), '00'].join(':'));
+            } else {
+                setTimeLeft([('00' + breakLength).slice(-2), '00'].join(':'))
+            }
+            setBreak(!isBreak);
+            document.getElementById("#beep").play();
         }
         let timeString = [('00' + time[0]).slice(-2), ('00' + time[1]).slice(-2)];
-        setTimeLeft(timeString.join(":"));
-    }, [timeLeft]);
+        setTimeLeft(timeString.join(':'));
+    }, [timeLeft, isBreak, breakLength, sessionLength]);
 
     useEffect(() => {
         if (startStop) {
-            setTimeout(countdown,1000);
+            setTimerLabel(isBreak ? "Break" : "Session");
+            setTimeout(countdown, 1000)
+        } else {
+            setTimerLabel("Pause");
         }
-    }, [startStop, countdown]);
+    }, [startStop, countdown, isBreak]);
 
     return (
         <div className="App">
             <div id="break-label">Break Length</div>
             <div id="session-label">Session Length</div>
             <div className="break">
-                <button id="break-decrement" onClick={breakDecrement}><FontAwesomeIcon icon={solid('circle-minus')}/></button>
+                <button id="break-decrement" onClick={breakDecrement}><FontAwesomeIcon
+                    icon={solid('circle-minus')}/></button>
                 <span id="break-length">{breakLength}</span>
-                <button id="break-increment" onClick={breakIncrement}><FontAwesomeIcon icon={solid('circle-plus')}/></button>
+                <button id="break-increment" onClick={breakIncrement}><FontAwesomeIcon icon={solid('circle-plus')}/>
+                </button>
             </div>
             <div className="session">
-                <button id="session-decrement" onClick={sessionDecrement}><FontAwesomeIcon icon={solid("circle-minus")}/></button>
+                <button id="session-decrement" onClick={sessionDecrement}><FontAwesomeIcon
+                    icon={solid("circle-minus")}/></button>
                 <span id="session-length">{sessionLength}</span>
-                <button id="session-increment" onClick={sessionIncrement}><FontAwesomeIcon icon={solid('circle-plus')}/></button>
+                <button id="session-increment" onClick={sessionIncrement}><FontAwesomeIcon
+                    icon={solid('circle-plus')}/></button>
             </div>
-            <p id="timer-label">{startStop ? "Session" : ""}</p>
+            <p id="timer-label">{timerLabel}</p>
             <p id="time-left">{timeLeft}</p>
+            <audio src="./beep-01a.mp3" id="beep"/>
             <div className="start_stop-controls">
-                <button id="start_stop" onClick={handleStartStop}>{!startStop ? <FontAwesomeIcon icon={solid('play')}/> :
+                <button id="start_stop" onClick={handleStartStop}>{!startStop ?
+                    <FontAwesomeIcon icon={solid('play')}/> :
                     <FontAwesomeIcon icon={solid('stop')}/>}</button>
                 <button id="reset" onClick={resetClock}><FontAwesomeIcon icon={solid('backward-fast')}/></button>
             </div>
